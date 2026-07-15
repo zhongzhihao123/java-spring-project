@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  # ── Java 微服务 ──
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+    container_name: java-gateway
+    ports:
+      - "8100:8100"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_ENABLED=true
+      - JWT_SECRET=ai-platform-jwt-secret-key-min-256-bits-long-2024
+    depends_on:
+      user-service:
+        condition: service_started
+      business-service:
+        condition: service_started
+    networks:
+      - java-network
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: java-user
+    ports:
+      - "8101:8101"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3307/ai_platform?useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=aisys
+      - SPRING_DATASOURCE_PASSWORD=aisys123
+      - SPRING_RABBITMQ_HOST=host.docker.internal
+    networks:
+      - java-network
+
+  business-service:
+    build:
+      context: .
+      dockerfile: business-service/Dockerfile
+    container_name: java-business
+    ports:
+      - "8102:8102"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3307/ai_platform?useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=aisys
+      - SPRING_DATASOURCE_PASSWORD=aisys123
+      - SPRING_RABBITMQ_HOST=host.docker.internal
+    networks:
+      - java-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: java-notification
+    ports:
+      - "8103:8103"
+    environment:
+      - SPRING_RABBITMQ_HOST=host.docker.internal
+    networks:
+      - java-network
+
+networks:
+  java-network:
+    driver: bridge

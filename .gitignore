@@ -1,0 +1,73 @@
+# ─── Maven ────────────────────────────────────────────
+target/
+*.jar
+*.war
+*.ear
+*.class
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# ─── Maven Wrapper ───────────────────────────────────
+.mvn/wrapper/maven-wrapper.jar
+
+# ─── IDE / 编辑器 ─────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+.classpath
+.project
+.settings/
+.factorypath
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── 环境变量（含密钥、密码） ──────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+application-local.yml
+application-dev.yml
+
+# ─── 操作系统 ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ─── 日志 ─────────────────────────────────────────────
+logs/
+*.log
+*.log.gz
+
+# ─── Docker ──────────────────────────────────────────
+.docker/
+docker-compose.override.yml
+
+# ─── 构建缓存 ─────────────────────────────────────────
+.cache/
+*.tmp
+
+# ─── 测试报告 ─────────────────────────────────────────
+test-output/
+surefire-reports/
+*.html
+*.xml

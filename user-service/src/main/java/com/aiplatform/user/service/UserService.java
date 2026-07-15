@@ -2,7 +2,11 @@ package com.aiplatform.user.service;
 
 import com.aiplatform.common.exception.BusinessException;
 import com.aiplatform.user.dto.*;
+import com.aiplatform.user.entity.AppPermission;
 import com.aiplatform.user.entity.User;
+import com.aiplatform.user.entity.UserPermission;
+import com.aiplatform.user.repository.AppPermissionRepository;
+import com.aiplatform.user.repository.UserPermissionRepository;
 import com.aiplatform.user.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -14,6 +18,8 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务 — 注册 / 登录 / JWT 签发
@@ -27,6 +33,8 @@ public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
+    private final UserPermissionRepository userPermRepo;
+    private final AppPermissionRepository appPermRepo;
 
     @Value("${jwt.secret:ai-platform-jwt-secret-key-min-256-bits-long-2024}")
     private String jwtSecret;
@@ -34,8 +42,12 @@ public class UserService {
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       UserPermissionRepository userPermRepo,
+                       AppPermissionRepository appPermRepo) {
         this.userRepository = userRepository;
+        this.userPermRepo = userPermRepo;
+        this.appPermRepo = appPermRepo;
     }
 
     private SecretKey getSigningKey() {
@@ -56,6 +68,7 @@ public class UserService {
         user.setEmail(req.getEmail());
         user.setPassword(hashPassword(req.getPassword()));
         user.setDisplayName(req.getDisplayName() != null ? req.getDisplayName() : req.getUsername());
+        user.setRole(req.getRole() != null ? req.getRole() : "user");
 
         user = userRepository.save(user);
         log.info("新用户注册: {}", user.getUsername());
@@ -114,7 +127,18 @@ public class UserService {
         return ("HASH_" + raw).equals(stored);
     }
 
-    /** 实体 → 响应 DTO 转换 */
+    /** 获取用户权限 key 列表 */
+    private List<String> getUserPermissionKeys(Long userId) {
+        List<Long> permIds = userPermRepo.findByUserId(userId).stream()
+                .map(UserPermission::getPermissionId)
+                .collect(Collectors.toList());
+        if (permIds.isEmpty()) return List.of();
+        return appPermRepo.findAllById(permIds).stream()
+                .map(AppPermission::getAppKey)
+                .collect(Collectors.toList());
+    }
+
+    /** 实体 → 响应 DTO 转换（含权限） */
     private UserResponse toResponse(User user) {
         var resp = new UserResponse();
         resp.setId(user.getId());
@@ -123,6 +147,7 @@ public class UserService {
         resp.setDisplayName(user.getDisplayName());
         resp.setRole(user.getRole());
         resp.setEnabled(user.getEnabled());
+        resp.setPermissions(getUserPermissionKeys(user.getId()));
         return resp;
     }
 }

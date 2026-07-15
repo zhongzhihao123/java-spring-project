@@ -52,7 +52,7 @@ spring:
         - id: user-service
           uri: http://localhost:8101
           predicates:
-            - Path=/api/users/**
+            - Path=/api/users/**,/api/admin/**,/api/settings/**
 
         - id: business-service
           uri: http://localhost:8102
@@ -65,11 +65,6 @@ spring:
             - Path=/api/notifications/**
 
       default-filters:
-        - name: RequestRateLimiter
-          args:
-            redis-rate-limiter:
-              replenishRate: 100
-              burstCapacity: 200
 
   data:
     redis:

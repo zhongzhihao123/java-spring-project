@@ -34,6 +34,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     /** 白名单路径（无需 JWT） */
     private static final List<String> WHITE_LIST = List.of(
             "/api/users/login", "/api/users/register",
+            "/api/admin/users/forgot-password",
             "/api/nlp", "/api/recommend", "/api/cv", "/api/mlops",
             "/api/dbadmin", "/api/health", "/api/info",
             "/api/docs", "/v3/api-docs"

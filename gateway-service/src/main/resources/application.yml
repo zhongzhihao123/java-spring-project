@@ -70,6 +70,12 @@ spring:
           predicates:
             - Path=/api/cicd/**
 
+        # ── OA 审批服务 ──
+        - id: oa-service
+          uri: http://localhost:8105
+          predicates:
+            - Path=/api/oa/**
+
       default-filters:
 
   data:

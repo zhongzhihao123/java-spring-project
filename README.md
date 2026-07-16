@@ -69,6 +69,7 @@ java-spring-project/
 │   ├── controller/                #   BusinessController, DbAdminController, HealthController
 │   └── client/                    #   Feign 客户端 (调用通知服务)
 ├── cicd-service/                  # CI/CD 流水线服务 (:8104)
+├── oa-service/                    # OA 审批系统服务 (:8105)
 │   ├── entity/                    #   Pipeline, Stage, Step, Execution, ExecStage, ExecStep, Artifact, CodeChange
 │   ├── repository/                #   各实体 Repository
 │   ├── service/                   #   CicdService
@@ -137,6 +138,7 @@ docker compose up -d --build
 | `/api/mlops/**` | mlops-service:8004 | Python AI | 模型训练/监控 |
 | `/api/dbadmin/**` | business-service:8102 | Java | 数据库管理（表浏览/SQL查询） |
 | `/api/cicd/**` | cicd-service:8104 | Java | CI/CD 流水线管理 |
+| `/api/oa/**` | oa-service:8105 | Java | OA 审批请假系统 |
 | `/api/health` | business-service:8102 | Java | 健康检查 |
 | `/api/info` | business-service:8102 | Java | 服务信息 |
 

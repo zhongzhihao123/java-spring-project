@@ -16,31 +16,32 @@
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │               ☕ Java 统一网关 (:8000)                        │
-│         Spring Cloud Gateway                                │
-│  /api/users /api/business /api/nlp /api/cv /api/dbadmin...  │
+│         Spring Cloud Gateway + JWT 鉴权                     │
+│  /api/users /api/business /api/dbadmin /api/nlp /api/cv...  │
 └──┬───────┬───────┬───────┬───────┬───────┬───────┬──────────┘
    │       │       │       │       │       │       │
    ▼       ▼       ▼       ▼       ▼       ▼       ▼
-┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌──────────┐
-│User │ │Biz  │ │Notif│ │NLP  │ │Rec  │ │CV   │ │DB Admin  │
-│Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │ │(代理)    │
-│:8101│ │:8102│ │:8103│ │:8001│ │:8002│ │:8003│ │          │
-│Java │ │Java │ │Java │ │Python│ │Python│ │Python│ │:8005    │
-│用户/│ │商品/│ │通知/│ │AI   │ │AI   │ │AI   │ │Python内  │
-│认证 │ │订单 │ │消息 │ │问答 │ │推荐 │ │视觉 │ │部网关    │
-│JWT  │ │     │ │MQ   │ │     │ │     │ │     │ │直连MySQL│
-└─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └──────────┘
-                                                           │
-                                          ┌────────────────┘
-                                          ▼
+┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐
+│User │ │Biz  │ │Notif│ │NLP  │ │Rec  │ │CV   │
+│Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │
+│:8101│ │:8102│ │:8103│ │:8001│ │:8002│ │:8003│
+│Java │ │Java │ │Java │ │Python│ │Python│ │Python│
+│用户/│ │商品/│ │通知/│ │AI   │ │AI   │ │AI   │
+│认证 │ │订单/│ │消息 │ │问答 │ │推荐 │ │视觉 │
+│JWT  │ │DB管│ │MQ   │ │     │ │     │ │     │
+└─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘
+                  │
+                  │ DB Admin API
+                  │ (直连 MySQL)
+                  ▼
                           ┌──────────────────────────────┐
                           │   Infrastructure              │
                           │  MySQL(:3307) Redis(:6379)    │
                           │  RabbitMQ(:5672) MinIO(:9000) │
                           └──────────────────────────────┘
 
-  注：Python AI 服务不走自己的网关，直接由 Java 网关代理。
-  Python 内部网关 (:8005) 仅用于 DB Admin 和健康检查。
+  注：所有服务（Java + Python）统一由 Java 网关代理，无 Python 网关。
+  DB Admin API 由 Java business-service 直连 MySQL 提供。
 
 ## 📁 项目结构
 
@@ -56,16 +57,16 @@ java-spring-project/
 │   ├── config/                    #   CORS, 限流
 │   └── filter/                    #   JWT 全局鉴权过滤器
 ├── user-service/                  # 用户服务 (:8101)
-│   ├── entity/                    #   User
+│   ├── entity/                    #   User, AppPermission, UserPermission
 │   ├── repository/                #   UserRepository
-│   ├── service/                   #   UserService (注册/登录/JWT)
-│   ├── controller/                #   UserController
+│   ├── service/                   #   UserService, AdminService
+│   ├── controller/                #   UserController, AdminController, SettingsController
 │   └── config/                    #   全局异常处理
 ├── business-service/              # 业务服务 (:8102)
 │   ├── entity/                    #   Product, Order
 │   ├── repository/                #   ProductRepository, OrderRepository
 │   ├── service/                   #   BusinessService
-│   ├── controller/                #   BusinessController
+│   ├── controller/                #   BusinessController, DbAdminController, HealthController
 │   └── client/                    #   Feign 客户端 (调用通知服务)
 └── notification-service/          # 通知服务 (:8103)
     ├── config/                    #   RabbitMQ 队列配置
@@ -129,9 +130,9 @@ docker compose up -d --build
 | `/api/recommend/**` | recommend-service:8002 | Python AI | 智能推荐 |
 | `/api/cv/**` | cv-service:8003 | Python AI | 计算机视觉 |
 | `/api/mlops/**` | mlops-service:8004 | Python AI | 模型训练/监控 |
-| `/api/dbadmin/**` | Python 内部网关:8005 | Python | 数据库管理 |
-| `/api/health` | Python 内部网关:8005 | Python | 健康检查 |
-| `/api/info` | Python 内部网关:8005 | Python | 服务信息 |
+| `/api/dbadmin/**` | business-service:8102 | Java | 数据库管理（表浏览/SQL查询） |
+| `/api/health` | business-service:8102 | Java | 健康检查 |
+| `/api/info` | business-service:8102 | Java | 服务信息 |
 
 ### 用户服务
 
@@ -153,6 +154,12 @@ docker compose up -d --build
 | GET  | `/api/business/orders` | 我的订单 |
 | GET  | `/api/business/orders/{no}` | 订单详情 |
 | POST | `/api/business/orders` | 创建订单 |
+| GET  | `/api/dbadmin/tables` | 获取所有表 |
+| GET  | `/api/dbadmin/tables/{name}` | 获取表结构 |
+| GET  | `/api/dbadmin/tables/{name}/data` | 分页查询数据 |
+| POST | `/api/dbadmin/query` | 执行 SQL 查询 |
+| GET  | `/api/health` | 健康检查 |
+| GET  | `/api/info` | 服务信息 |
 
 ### 通知服务
 
@@ -196,11 +203,11 @@ docker compose up -d --build
 
 | | Python AI 系统 | Java 业务系统 |
 |------|-------------|-------------|
-| **定位** | AI 能力：NLP / 推荐 / CV / MLOps | 业务能力：用户 / 商品 / 订单 / 通知 |
-| **网关** | 内部网关 :8005（仅供 Java 调用） | **统一网关 :8000**（前端唯一入口） |
-| **认证** | 已移除 | JWT Bearer（user-service 管理） |
+| **定位** | AI 能力：NLP / 推荐 / CV / MLOps | 业务能力：用户 / 商品 / 订单 / 通知 / DB管理 |
+| **网关** | 无独立网关 | **统一网关 :8000**（前端唯一入口） |
+| **认证** | 无（由 Java 网关统一鉴权） | JWT Bearer（user-service 管理） |
 | **数据库** | MySQL + Milvus（向量） | MySQL（同库，不同表） |
 | **消息** | RabbitMQ 发送 AI 事件 | 消费事件触发通知 |
 | **部署** | Docker Compose + K8s | Docker Compose |
 
-**前端只需要记住一个端口 8000**。AI 服务和数据库管理路由由 Java 网关统一代理，对前端透明。
+**前端只需要记住一个端口 8000**。所有服务（Java + Python + DB管理）统一由 Java 网关代理，对前端透明。Python 网关已移除。

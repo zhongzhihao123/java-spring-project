@@ -36,15 +36,15 @@ spring:
           filters:
             - RewritePath=/api/mlops/(?<seg>.*), /api/$\{seg}
 
-        # ── 数据库管理 → Python 内部网关 8005 ──
+        # ── 数据库管理 → Java Business Service 8102 ──
         - id: dbadmin-service
-          uri: http://localhost:8005
+          uri: http://localhost:8102
           predicates:
             - Path=/api/dbadmin/**
 
-        # ── 健康检查 → Python 内部网关 8005 ──
+        # ── 健康检查 → Java Business Service 8102 ──
         - id: health-info
-          uri: http://localhost:8005
+          uri: http://localhost:8102
           predicates:
             - Path=/api/health,/api/info
 

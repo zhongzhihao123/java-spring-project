@@ -21,15 +21,15 @@
 └──┬───────┬───────┬───────┬───────┬───────┬───────┬──────────┘
    │       │       │       │       │       │       │
    ▼       ▼       ▼       ▼       ▼       ▼       ▼
-┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐
-│User │ │Biz  │ │Notif│ │NLP  │ │Rec  │ │CV   │
-│Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │
-│:8101│ │:8102│ │:8103│ │:8001│ │:8002│ │:8003│
-│Java │ │Java │ │Java │ │Python│ │Python│ │Python│
-│用户/│ │商品/│ │通知/│ │AI   │ │AI   │ │AI   │
-│认证 │ │订单/│ │消息 │ │问答 │ │推荐 │ │视觉 │
-│JWT  │ │DB管│ │MQ   │ │     │ │     │ │     │
-└─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘
+┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐
+│User │ │Biz  │ │Notif│ │NLP  │ │Rec  │ │CV   │ │CI/CD│
+│Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │ │Svc  │
+│:8101│ │:8102│ │:8103│ │:8001│ │:8002│ │:8003│ │:8104│
+│Java │ │Java │ │Java │ │Python│ │Python│ │Python│ │Java │
+│用户/│ │商品/│ │通知/│ │AI   │ │AI   │ │AI   │ │流水线│
+│认证 │ │订单/│ │消息 │ │问答 │ │推荐 │ │视觉 │ │构建 │
+│JWT  │ │DB管│ │MQ   │ │     │ │     │ │     │ │部署 │
+└─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘
                   │
                   │ DB Admin API
                   │ (直连 MySQL)
@@ -68,6 +68,11 @@ java-spring-project/
 │   ├── service/                   #   BusinessService
 │   ├── controller/                #   BusinessController, DbAdminController, HealthController
 │   └── client/                    #   Feign 客户端 (调用通知服务)
+├── cicd-service/                  # CI/CD 流水线服务 (:8104)
+│   ├── entity/                    #   Pipeline, Stage, Step, Execution, ExecStage, ExecStep, Artifact, CodeChange
+│   ├── repository/                #   各实体 Repository
+│   ├── service/                   #   CicdService
+│   └── controller/                #   CicdController
 └── notification-service/          # 通知服务 (:8103)
     ├── config/                    #   RabbitMQ 队列配置
     ├── listener/                  #   事件监听 (跨语言消费 Python 端消息)
@@ -131,6 +136,7 @@ docker compose up -d --build
 | `/api/cv/**` | cv-service:8003 | Python AI | 计算机视觉 |
 | `/api/mlops/**` | mlops-service:8004 | Python AI | 模型训练/监控 |
 | `/api/dbadmin/**` | business-service:8102 | Java | 数据库管理（表浏览/SQL查询） |
+| `/api/cicd/**` | cicd-service:8104 | Java | CI/CD 流水线管理 |
 | `/api/health` | business-service:8102 | Java | 健康检查 |
 | `/api/info` | business-service:8102 | Java | 服务信息 |
 
@@ -167,6 +173,25 @@ docker compose up -d --build
 |------|------|------|
 | POST | `/api/notifications/send` | 发送通知 |
 | GET  | `/api/notifications/messages` | 我的消息 |
+
+### CI/CD 流水线服务
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET  | `/api/cicd/pipelines` | 流水线列表 |
+| GET  | `/api/cicd/pipelines/{id}` | 流水线详情 |
+| POST | `/api/cicd/pipelines` | 创建流水线 |
+| PUT  | `/api/cicd/pipelines/{id}` | 更新流水线 |
+| DELETE | `/api/cicd/pipelines/{id}` | 删除流水线 |
+| PUT  | `/api/cicd/pipelines/{id}/favorite` | 收藏/取消收藏 |
+| POST | `/api/cicd/pipelines/{id}/execute` | 执行流水线 |
+| GET  | `/api/cicd/executions` | 执行历史 |
+| GET  | `/api/cicd/executions/{id}` | 执行详情 |
+| GET  | `/api/cicd/executions/{id}/stages` | 执行阶段 |
+| GET  | `/api/cicd/exec-stages/{id}/steps` | 阶段步骤 |
+| GET  | `/api/cicd/executions/{id}/changes` | 代码变更 |
+| GET  | `/api/cicd/executions/{id}/artifacts` | 产出物 |
+| PUT  | `/api/cicd/executions/{id}/cancel` | 取消执行 |
 
 ---
 

@@ -64,6 +64,12 @@ spring:
           predicates:
             - Path=/api/notifications/**
 
+        # ── CI/CD 流水线服务 ──
+        - id: cicd-service
+          uri: http://localhost:8104
+          predicates:
+            - Path=/api/cicd/**
+
       default-filters:
 
   data:

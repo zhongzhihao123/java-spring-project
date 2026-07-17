@@ -76,6 +76,12 @@ spring:
           predicates:
             - Path=/api/oa/**
 
+        # ── Eclaw 智能体平台 ──
+        - id: eclaw-service
+          uri: http://localhost:8106
+          predicates:
+            - Path=/api/eclaw/**
+
       default-filters:
 
   data:

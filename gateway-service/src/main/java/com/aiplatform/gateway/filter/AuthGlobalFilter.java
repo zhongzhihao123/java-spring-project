@@ -36,7 +36,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/api/users/login", "/api/users/register",
             "/api/admin/users/forgot-password",
             "/api/nlp", "/api/recommend", "/api/cv", "/api/mlops",
-            "/api/dbadmin", "/api/cicd", "/api/oa", "/api/health", "/api/info",
+            "/api/dbadmin", "/api/cicd", "/api/oa", "/api/eclaw", "/api/health", "/api/info",
             "/api/docs", "/v3/api-docs"
     );
 

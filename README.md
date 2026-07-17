@@ -238,3 +238,84 @@ docker compose up -d --build
 | **部署** | Docker Compose + K8s | Docker Compose |
 
 **前端只需要记住一个端口 8000**。所有服务（Java + Python + DB管理）统一由 Java 网关代理，对前端透明。Python 网关已移除。
+
+---
+
+## 📋 OA 审批服务
+
+### 功能特性
+
+- 请假申请（年假、事假、病假、婚假、产假、调休）
+- 一级审批流程（直属领导自动匹配）
+- 审批仪表盘（待处理统计、已用年假、通知）
+- 审批时间线（申请→审批→结果）
+
+### 数据库表
+
+| 表名 | 说明 |
+|------|------|
+| `oa_leave_types` | 假期类型（6种） |
+| `oa_applications` | 审批申请 |
+| `oa_approval_records` | 审批记录 |
+| `oa_notifications` | 系统通知 |
+| `oa_approvers` | 审批人配置 |
+| `oa_approval_flows` | 审批流程模板 |
+| `oa_wecom_contacts` | 企业微信联系人映射 |
+
+### API 接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/oa/leave-types` | 假期类型列表 |
+| POST | `/api/oa/applications` | 提交申请 |
+| GET | `/api/oa/applications` | 我的申请 |
+| GET | `/api/oa/applications/{id}` | 申请详情 |
+| POST | `/api/oa/applications/{id}/approve` | 审批通过 |
+| POST | `/api/oa/applications/{id}/reject` | 审批驳回 |
+| POST | `/api/oa/applications/{id}/cancel` | 撤回申请 |
+| GET | `/api/oa/applications/pending` | 待我审批 |
+| GET | `/api/oa/dashboard` | 审批仪表盘 |
+| GET | `/api/oa/wecom/approver` | 我的审批人（含企微信息） |
+| POST | `/api/oa/wecom/test-notify` | 测试企微通知 |
+
+---
+
+## 📱 企业微信集成
+
+OA 审批系统通过**企业微信群机器人 Webhook**推送审批通知，无需配置 IP 白名单或回调 URL。
+
+### 通知流程
+
+```
+提交申请 → 查找审批人 → 发送企微群机器人通知
+审批完成 → 发送结果通知到企微群
+```
+
+### 配置
+
+`oa-service/src/main/resources/application.yml`：
+
+```yaml
+wecom:
+  enabled: true
+  webhook-url: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=***
+```
+
+### 消息格式
+
+```markdown
+## 📋 新审批待处理
+> 申请人: 张三
+> 假期类型: 年假
+> 天数: 3天
+> 编号: OA-20260717-001
+> 请尽快审批处理
+```
+
+### 审批人配置
+
+```sql
+-- oa_approvers 表配置示例
+INSERT INTO oa_approvers (user_id, user_name, approver_id, approver_name, is_default)
+VALUES (1, '管理员', 2, '张三', 1);  -- 管理员 → 审批人：张三
+```

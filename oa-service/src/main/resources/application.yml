@@ -22,3 +22,16 @@ wechat:
   webhook:
     url: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE
     enabled: false
+
+# 企业微信 API 配置
+wecom:
+  # 启用企业微信集成（群机器人Webhook模式）
+  enabled: true
+  # 企业ID
+  corp-id: ww6f05703867c61e18
+  # 应用 AgentId
+  agent-id: '1000002'
+  # 应用 Secret
+  corp-secret: 3Ndd3ATCU_m6I3KfydA9jrk87CAOJIW2aTrZmVi9Gfk
+  # 群机器人 Webhook URL
+  webhook-url: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0fe8f4dd-a19c-4b72-9880-74d3bfc916d4

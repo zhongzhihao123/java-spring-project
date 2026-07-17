@@ -4,13 +4,15 @@ import com.aiplatform.common.dto.ApiResponse;
 import com.aiplatform.oa.entity.*;
 import com.aiplatform.oa.service.OAService;
 import com.aiplatform.oa.service.WechatNotifyService;
+import com.aiplatform.oa.service.WecomService;
+import com.aiplatform.oa.repository.WecomContactRepository;
+import com.aiplatform.oa.entity.WecomContact;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/oa")
@@ -21,6 +23,12 @@ public class OAController {
 
     @Autowired
     private WechatNotifyService wechatNotifyService;
+
+    @Autowired
+    private WecomService wecomService;
+
+    @Autowired
+    private WecomContactRepository wecomContactRepo;
 
     // === Leave Types ===
     @GetMapping("/leave-types")
@@ -130,6 +138,47 @@ public class OAController {
         return ApiResponse.success(oaService.getApprovers(userId));
     }
 
+    // === WeCom Integration ===
+    @GetMapping("/wecom/contacts")
+    public ApiResponse<List<WecomContact>> getWecomContacts() {
+        return ApiResponse.success(wecomContactRepo.findByIsActiveTrue());
+    }
+
+    @GetMapping("/wecom/approver")
+    public ApiResponse<Map<String, Object>> getMyApprover(@RequestHeader("X-User-Id") Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        // 查找当前用户的审批人
+        Approver approver = null;
+        List<Approver> approvers = oaService.getApprovers(userId);
+        if (!approvers.isEmpty()) {
+            approver = approvers.get(0);
+        }
+        
+        if (approver != null) {
+            result.put("approverId", approver.getApproverId());
+            result.put("approverName", approver.getApproverName());
+            // 查找审批人的企业微信信息
+            Optional<WecomContact> wecomContact = wecomContactRepo.findByUserId(approver.getApproverId());
+            if (wecomContact.isPresent()) {
+                result.put("wecomName", wecomContact.get().getWecomName());
+                result.put("wecomDepartment", wecomContact.get().getWecomDepartment());
+                result.put("wecomPosition", wecomContact.get().getWecomPosition());
+                result.put("wecomAvatar", wecomContact.get().getWecomAvatar());
+            }
+        }
+        return ApiResponse.success(result);
+    }
+
+    @GetMapping("/wecom/departments")
+    public ApiResponse<List<Map<String, Object>>> getWecomDepartments() {
+        return ApiResponse.success(wecomService.getDepartments());
+    }
+
+    @GetMapping("/wecom/members/{departmentId}")
+    public ApiResponse<List<Map<String, Object>>> getWecomMembers(@PathVariable int departmentId) {
+        return ApiResponse.success(wecomService.getDepartmentMembers(departmentId));
+    }
+
     // === Dashboard ===
     @GetMapping("/dashboard")
     public ApiResponse<Map<String, Object>> getDashboard(@RequestHeader("X-User-Id") Long userId) {
@@ -150,5 +199,15 @@ public class OAController {
             Double.parseDouble(body.get("days")), body.get("reason"), body.get("appNo")
         );
         return ApiResponse.success(null);
+    }
+
+    // === WeCom Test Notify ===
+    @PostMapping("/wecom/test-notify")
+    public ApiResponse<String> testWecomNotify(@RequestBody Map<String, String> body) {
+        String userId = body.get("userId");
+        String title = body.getOrDefault("title", "测试通知");
+        String content = body.getOrDefault("content", "这是一条测试消息");
+        boolean result = wecomService.sendApplicationMessage(userId, title, content);
+        return ApiResponse.success(result ? "发送成功" : "发送失败");
     }
 }

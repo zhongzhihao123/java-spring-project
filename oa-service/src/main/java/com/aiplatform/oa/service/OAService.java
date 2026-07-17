@@ -2,6 +2,7 @@ package com.aiplatform.oa.service;
 
 import com.aiplatform.oa.entity.*;
 import com.aiplatform.oa.repository.*;
+import com.aiplatform.oa.service.WecomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Optional;
 
 @Service
 public class OAService {
@@ -29,6 +31,12 @@ public class OAService {
     private ApprovalFlowRepository flowRepo;
     @Autowired
     private WechatNotifyService wechatNotifyService;
+
+    @Autowired
+    private WecomService wecomService;
+
+    @Autowired
+    private WecomContactRepository wecomContactRepo;
 
     // === Leave Types ===
     public List<LeaveType> getLeaveTypes() {
@@ -94,6 +102,19 @@ public class OAService {
                 approver.getApproverName(), userName, typeName, 
                 days.doubleValue(), reason, app.getAppNo()
             );
+
+            // Send WeCom notification
+            try {
+                // 查找审批人的企业微信userid
+                Optional<WecomContact> approverWecom = wecomContactRepo.findByUserId(approver.getApproverId());
+                String wecomUserid = approverWecom.map(WecomContact::getWecomUserid).orElse(null);
+                wecomService.sendApprovalNotification(
+                    wecomUserid, approver.getApproverName(), userName,
+                    typeName, days.doubleValue(), reason, app.getAppNo()
+                );
+            } catch (Exception e) {
+                // 企业微信通知失败不影响主流程
+            }
         }
 
         return app;
@@ -138,6 +159,18 @@ public class OAService {
             true, approverName, comment
         );
 
+        // Send WeCom result notification
+        try {
+            Optional<WecomContact> applicantWecom = wecomContactRepo.findByUserId(app.getApplicantId());
+            String applicantWecomUserid = applicantWecom.map(WecomContact::getWecomUserid).orElse(null);
+            wecomService.sendResultNotification(
+                applicantWecomUserid, app.getApplicantName(), app.getTypeName(),
+                app.getDays().doubleValue(), true, approverName, comment
+            );
+        } catch (Exception e) {
+            // 企业微信通知失败不影响主流程
+        }
+
         return app;
     }
 
@@ -178,6 +211,18 @@ public class OAService {
             app.getApplicantName(), app.getTypeName(), app.getDays().doubleValue(),
             false, approverName, comment
         );
+
+        // Send WeCom result notification
+        try {
+            Optional<WecomContact> applicantWecom = wecomContactRepo.findByUserId(app.getApplicantId());
+            String applicantWecomUserid = applicantWecom.map(WecomContact::getWecomUserid).orElse(null);
+            wecomService.sendResultNotification(
+                applicantWecomUserid, app.getApplicantName(), app.getTypeName(),
+                app.getDays().doubleValue(), false, approverName, comment
+            );
+        } catch (Exception e) {
+            // 企业微信通知失败不影响主流程
+        }
 
         return app;
     }
